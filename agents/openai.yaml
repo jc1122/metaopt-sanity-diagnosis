@@ -1,0 +1,12 @@
+# Catalog metadata for OpenAI/Codex-style runtimes.
+# This file is not consumed by the GitHub Copilot orchestration runtime described in SKILL.md.
+interface:
+  display_name: "Metaopt Sanity Diagnosis"
+  short_description: "Diagnose sanity and execution failures in metaoptimization campaigns"
+  categories:
+    - ml
+    - debugging
+  default_prompt: >
+    Diagnose the failure from the sanity check or remote execution.
+    Produce a root-cause summary, failure classification, and concrete
+    fix recommendation or abandonment guidance.
