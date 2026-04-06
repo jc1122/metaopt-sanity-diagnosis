@@ -13,8 +13,12 @@ This is a leaf worker skill — it receives context from the orchestrator, perfo
 
 The orchestrator dispatches this skill into the `diagnosis` auxiliary slot when:
 - a `LOCAL_SANITY` command exits non-zero
-- the remote backend returns a `failed` lifecycle status
+- the remote backend returns a `failed` lifecycle status (dispatched from `WAIT_FOR_REMOTE_BATCH`)
 - materialized code fails to load, import, or run
+
+**Dispatch points:**
+- `LOCAL_SANITY` failure → diagnosis may lead to remediation materialization, config block, or abandonment
+- `WAIT_FOR_REMOTE_BATCH` failure → diagnosis always leads to a terminal transition (`FAILED` or `BLOCKED_CONFIG`) since remote failures cannot be remediated locally
 
 The diagnosis worker's job is to explain *why* the failure happened and recommend *what to do about it*.
 
@@ -26,6 +30,15 @@ The diagnosis worker's job is to explain *why* the failure happened and recommen
 ## Input Contract
 
 The orchestrator provides all necessary context via the subagent prompt. The diagnosis worker does not read files from disk or access external systems.
+
+### Standard Envelope (provided by orchestrator on every dispatch)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `campaign_id` | string | Campaign identifier |
+| `current_iteration` | integer | Current iteration number |
+| `slot_id` | string | The slot ID dispatching this worker |
+| `attempt` | integer | Attempt number for this dispatch (1-indexed) |
 
 ### Required Inputs
 
@@ -84,6 +97,8 @@ fix_recommendation:
 ```
 
 - Exactly one of `code_guidance`, `config_guidance`, or `reason_to_abandon` should be non-null.
+- When `action` is `"fix"`, `code_guidance` is required.
+- When `action` is `"adjust_config"`, `config_guidance` is required. The orchestrator transitions to `BLOCKED_CONFIG` with the `config_guidance` as `next_action`.
 - When `action` is `"abandon"`, `reason_to_abandon` is required.
 
 ## Failure Classifications
@@ -120,9 +135,11 @@ When uncertain between two classifications, prefer the more actionable one (the 
 
 6. **Do not speculate about unrelated failures.** Analyze only the failure context provided. Do not hypothesize about other experiments, other parts of the codebase, or potential future failures.
 
-7. **Be specific in code guidance.** Instead of "fix the data loading code", say "the `load_dataset` call on line 42 passes `split='test'` but the dataset only has a `'validation'` split — change the split argument".
+7. **Outputs are persisted.** The orchestrator persists each diagnosis output as a record in `state.selected_experiment.diagnosis_history`. Subsequent diagnoses for the same experiment receive all prior records as `previous_diagnoses`. Write outputs that are useful as historical context.
 
-8. **Flag temporal leakage violations.** If the sanity config requires zero temporal leakage and the failure or code changes suggest leakage (e.g., using future data in training, test set contamination), classify as `design_error` and recommend abandonment.
+8. **Be specific in code guidance.** Instead of "fix the data loading code", say "the `load_dataset` call on line 42 passes `split='test'` but the dataset only has a `'validation'` split — change the split argument".
+
+9. **Flag temporal leakage violations.** If the sanity config requires zero temporal leakage and the failure or code changes suggest leakage (e.g., using future data in training, test set contamination), classify as `design_error` and recommend abandonment.
 
 ## Common Mistakes
 
