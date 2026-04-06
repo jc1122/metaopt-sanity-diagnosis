@@ -156,5 +156,6 @@ When uncertain between two classifications, prefer the more actionable one (the 
 ## References
 
 - `ml-metaoptimization/references/worker-lanes.md` — authoritative lane contract for the `diagnosis` slot
-- `ml-metaoptimization/references/backend-contract.md` — remote failure classifications and status lifecycle
+- `ml-metaoptimization/references/backend-contract.md` — referenced for understanding the queue interaction context (remote failure payloads and status lifecycle); note that the failure classification taxonomy (`code_error`, `config_error`, `infra_error`, `data_error`, `design_error`) is defined by this skill itself, not by backend-contract.md
+- `ml-metaoptimization/references/state-machine.md` — defines `LOCAL_SANITY` and `WAIT_FOR_REMOTE_BATCH` states that dispatch this skill
 - `ml-metaoptimization/SKILL.md` — orchestrator state machine and dispatch invariants
