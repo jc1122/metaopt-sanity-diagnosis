@@ -131,7 +131,7 @@ When uncertain between two classifications, prefer the more actionable one (the 
 
 4. **Respect the attempt budget.** If `attempt_number` equals `max_attempts` and the fix is uncertain (confidence is `low` or `medium`), recommend abandonment. Do not recommend another fix attempt when there are no attempts left.
 
-5. **Recommend skipping remediation for infrastructure failures.** If the classification is `infra_error`, recommend the orchestrator skip code remediation and either retry the remote submission or abandon. Infrastructure problems are not fixable by code changes.
+5. **Remote infrastructure failures are terminal.** If the classification is `infra_error` on a remote failure, recommend `abandon` — the orchestrator cannot retry remote submissions (retries are the backend's responsibility via `remote_queue.retry_policy`). For local `infra_error`, recommend `adjust_config` if the issue is environmental, or `abandon` if it is transient.
 
 6. **Do not speculate about unrelated failures.** Analyze only the failure context provided. Do not hypothesize about other experiments, other parts of the codebase, or potential future failures.
 
